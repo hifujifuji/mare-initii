@@ -84,6 +84,16 @@ img { max-width: 100%; }
 .hero-tag { margin: clamp(20px, 2.6vw, 34px) 0 0; max-width: 30em; font-size: clamp(16px, 1.5vw, 19px); color: var(--mist); }
 .lede { padding-top: clamp(48px, 7vw, 96px); padding-bottom: clamp(40px, 6vw, 80px); }
 .lede p { margin: 0 0 1.1em; max-width: 40em; font-size: 15px; line-height: 1.95; color: var(--mist); }
+.lede.has-next { padding-bottom: 20px; }
+.lg-wrap { padding-bottom: clamp(40px, 6vw, 80px); }
+.lg-wrap.solo { padding-top: clamp(48px, 7vw, 96px); }
+.linkgroups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 32px clamp(32px, 5vw, 64px); padding-top: 28px; border-top: 1px solid var(--line); }
+.lg-wrap.solo .linkgroups { padding-top: 0; border-top: 0; }
+.linkgroups h2 { margin: 0 0 8px; font: 500 13px/1.6 var(--display); letter-spacing: .12em; color: var(--ink); }
+.linkgroups p { margin: 0 0 .7em; max-width: 40em; font-size: 14px; line-height: 1.9; color: var(--mist); }
+.linkgroups .links { margin-top: 12px; }
+.linkgroups > div > :last-child { margin-bottom: 0; }
+.linkgroups a { text-decoration-color: var(--line); }
 .links { display: flex; flex-wrap: wrap; gap: 8px 26px; margin-top: 28px; font-size: 14px; color: var(--mist); }
 .links a:hover { color: var(--ink); }
 
@@ -157,6 +167,36 @@ img { max-width: 100%; }
 }
 .lb-ctl a:hover { border-color: var(--mist); background: var(--surface); }
 
+/* 角色區 */
+.cast { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 22px 18px; padding-bottom: clamp(32px, 5vw, 56px); }
+.cast button { width: 112px; padding: 0; border: 0; background: none; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; text-align: center; }
+.tile { position: relative; display: block; overflow: hidden; aspect-ratio: 1; border-radius: 14px; background: var(--surface); transition: transform .5s var(--ease), box-shadow .3s; }
+.tile img { position: absolute; max-width: none; }
+.cname { display: block; margin-top: 9px; font-size: 13px; line-height: 1.5; color: var(--mist); overflow-wrap: anywhere; transition: color .15s; }
+@media (hover: hover) {
+  .cast button:hover .tile { transform: translateY(-3px); box-shadow: 0 14px 28px -18px rgba(11, 31, 71, .55); }
+  .cast button:hover .cname { color: var(--ink); }
+}
+#cast {
+  border: 0; padding: 0; border-radius: 16px; background: var(--paper); color: var(--ink); overflow: hidden;
+  width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  box-shadow: 0 30px 80px -30px rgba(7, 18, 38, .6);
+}
+#cast[open] { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); animation: fade .2s ease-out; }
+#cast.solo { width: fit-content; }
+#cast.solo[open] { grid-template-columns: 1fr; }
+#cast::backdrop { background: rgba(7, 18, 38, .55); }
+#cast figure { margin: 0; min-height: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; }
+#cast figure img { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 32px); object-fit: contain; }
+.cast-text { padding: clamp(24px, 4vw, 44px); padding-right: clamp(28px, 4vw, 52px); overflow-y: auto; max-height: calc(100vh - 32px); }
+.cast-text h2 { margin: 0 0 .8em; font: 500 clamp(21px, 2.6vw, 27px)/1.4 var(--display); letter-spacing: .04em; }
+.cast-text p { margin: 0 0 1em; font-size: 15px; line-height: 1.95; }
+#cast .close {
+  position: absolute; top: 10px; right: 10px; z-index: 1; width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--line); background: rgba(247, 249, 252, .88); color: var(--ink); font-size: 14px; cursor: pointer;
+}
+#cast .close:hover { border-color: var(--mist); }
+
 /* 文章列表 */
 .posts { list-style: none; margin: 0; padding: 0 0 clamp(56px, 8vw, 110px); }
 .posts.few { padding-bottom: 0; }
@@ -213,6 +253,11 @@ img { max-width: 100%; }
   .posts a { gap: 16px; padding: 22px 0; align-items: start; }
   .posts .thumb { width: 92px; aspect-ratio: 1; margin-top: 6px; }
   .lb-cap { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .cast { gap: 18px 14px; }
+  .cast button { width: 88px; }
+  #cast[open] { grid-template-columns: 1fr; overflow-y: auto; }
+  #cast figure img { max-height: 58vh; }
+  .cast-text { max-height: none; overflow: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

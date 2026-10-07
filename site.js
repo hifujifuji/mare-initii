@@ -4,6 +4,7 @@
   let preview = false;      // 後台預覽模式：會顯示草稿文章和隱藏的分頁
   let category = '';        // 畫廊目前的分類篩選
   let currentView = null;
+  let nowSection = null;    // 目前顯示的文章分頁
   const blobUrls = {};      // 後台尚未發佈的圖片：路徑 → blob URL
 
   const $ = (s, r = document) => r.querySelector(s);
@@ -18,7 +19,16 @@
   const byDate = (a, b) => String(b.date).localeCompare(String(a.date));
   // 分頁裡的文章照後台排好的順序顯示；還沒排過的舊資料則照日期，新的在前
   const postsOf = s => { const l = DATA.posts.filter(p => p.section === s.id && live(p)); return DATA.manualOrder ? l : l.sort(byDate); };
+  const galleryName = () => DATA.galleryInfo?.name || '畫廊';
   const shown = () => DATA.gallery.filter(g => !category || g.category === category);
+
+  // 角色縮圖：把原圖放大、移到指定的焦點，裁成正方形。fx、fy 是焦點在原圖上的位置（百分比），zoom 是放大倍率
+  function tileStyle(c) {
+    const a = (c.w / c.h) || 1, z = Math.max(1, +c.zoom || 1);
+    const W = (a >= 1 ? a : 1) * 100 * z, H = (a >= 1 ? 1 : 1 / a) * 100 * z;
+    const L = Math.min(0, Math.max(100 - W, 50 - (c.fx ?? 50) / 100 * W)), T = Math.min(0, Math.max(100 - H, 50 - (c.fy ?? 50) / 100 * H));
+    return `width:${W.toFixed(2)}%;height:${H.toFixed(2)}%;left:${L.toFixed(2)}%;top:${T.toFixed(2)}%`;
+  }
 
   const cell = g => `<a class="cell" href="#/gallery/${esc(g.id)}" style="--r:${(g.w / g.h || 1).toFixed(4)}"><img src="${esc(img(g.thumb || g.src))}" alt="${esc(g.title)}" loading="lazy">${g.title ? `<span>${esc(g.title)}</span>` : ''}</a>`;
 
@@ -34,6 +44,9 @@
 
   function home() {
     const s = DATA.site;
+    // 連結區塊：每塊有自己的小標題、說明和連結；完全沒填內容的區塊不顯示
+    const links = g => (g.links || []).filter(l => l.url);
+    const groups = (s.linkGroups || (s.links?.length ? [{ links: s.links }] : [])).filter(g => g.title || g.desc || links(g).length);
     const works = DATA.gallery.slice(0, 4);
     const latest = sections().flatMap(sec => postsOf(sec).map(p => ({ p, sec }))).sort((a, b) => byDate(a.p, b.p)).slice(0, 5);
     return `
@@ -44,8 +57,12 @@
     ${s.tagline ? `<p class="hero-tag">${esc(s.tagline)}</p>` : ''}
   </div>
 </section>
-${s.intro || s.links.length ? `<section class="wrap lede">${paras(s.intro)}${s.links.length ? `<div class="links">${s.links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('')}</div>` : ''}</section>` : ''}
-${works.length ? `<section class="wrap home-sec"><div class="sec-head"><h2>畫廊</h2><a href="#/gallery">看全部 ${DATA.gallery.length} 件作品</a></div><div class="grid few">${works.map(cell).join('')}</div></section>` : ''}
+${s.intro ? `<section class="wrap lede${groups.length ? ' has-next' : ''}">${paras(s.intro)}</section>` : ''}
+${groups.length ? `<section class="wrap lg-wrap${s.intro ? '' : ' solo'}"><div class="linkgroups">${groups.map(g => `<div>
+  ${g.title ? `<h2>${esc(g.title)}</h2>` : ''}${g.desc ? `<div class="lg-desc">${paras(g.desc)}</div>` : ''}
+  ${links(g).length ? `<div class="links">${links(g).map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label) || esc(l.url)}</a>`).join('')}</div>` : ''}
+</div>`).join('')}</div></section>` : ''}
+${works.length ? `<section class="wrap home-sec"><div class="sec-head"><h2>${esc(galleryName())}</h2><a href="#/gallery">看全部 ${DATA.gallery.length} 件作品</a></div><div class="grid few">${works.map(cell).join('')}</div></section>` : ''}
 ${latest.length ? `<section class="wrap home-sec"><div class="sec-head"><h2>最近更新</h2></div><ul class="posts few">${latest.map(x => postRow(x.p, x.sec, true)).join('')}</ul></section>` : ''}
 ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品和文章放上來之後，會出現在這裡。</p></div>' : ''}`;
   }
@@ -55,7 +72,7 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
     if (category && !cats.includes(category)) category = '';
     const list = shown();
     return `
-<div class="wrap page-head"><h1>畫廊</h1></div>
+<div class="wrap page-head"><h1>${esc(galleryName())}</h1>${DATA.galleryInfo?.desc ? `<div class="desc">${paras(DATA.galleryInfo.desc)}</div>` : ''}</div>
 <div class="wrap">
   ${cats.length > 1 ? `<div class="chips">${['', ...cats].map(c => `<button type="button" data-cat="${esc(c)}" aria-pressed="${c === category}">${esc(c) || '全部'}</button>`).join('')}</div>` : ''}
   ${list.length ? `<div class="grid">${list.map(cell).join('')}</div>` : '<p class="empty">還沒有放上作品。</p>'}
@@ -63,9 +80,10 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
   }
 
   function section(s) {
-    const list = postsOf(s);
+    const list = postsOf(s), cast = s.cast || [];
     return `
 <div class="wrap page-head"><h1>${esc(s.name)}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}</div>
+${cast.length ? `<div class="wrap"><div class="cast">${cast.map((c, i) => `<button type="button" data-cast="${i}" aria-label="看${esc(c.name) || '這個角色'}的設定"><span class="tile"><img src="${esc(img(c.thumb || c.src))}" alt="" loading="lazy" style="${tileStyle(c)}"></span>${c.name ? `<span class="cname">${esc(c.name)}</span>` : ''}</button>`).join('')}</div></div>` : ''}
 <div class="wrap">${list.length ? `<ul class="posts">${list.map(p => postRow(p, s)).join('')}</ul>` : '<p class="empty">這個分頁還沒有文章。</p>'}</div>`;
   }
 
@@ -89,6 +107,18 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
     ? `<a class="${rel}" rel="${rel}" href="#/${esc(s.slug)}/${esc(p.slug)}"><small>${rel === 'prev' ? '← ' + label : label + ' →'}</small><span>${esc(p.title) || '（未命名）'}</span></a>`
     : '<span></span>';
 
+  // 點角色縮圖後跳出的視窗：左邊是完整的圖，右邊是名字和設定
+  function openCast(i) {
+    const c = (nowSection?.cast || [])[i], d = $('#cast');
+    if (!c) return;
+    const text = c.name || c.body;
+    d.innerHTML = `<button type="button" class="close" aria-label="關閉">✕</button>
+<figure><img src="${esc(img(c.src))}" alt="${esc(c.name)}" width="${+c.w}" height="${+c.h}"></figure>
+${text ? `<div class="cast-text">${c.name ? `<h2>${esc(c.name)}</h2>` : ''}${paras(c.body)}</div>` : ''}`;
+    d.classList.toggle('solo', !text);
+    d.showModal();
+  }
+
   const missing = (title, link) => `<div class="wrap page-head"><h1>${title}</h1><p>${link}</p></div>`;
 
   function lightbox(id) {
@@ -110,6 +140,7 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
   function render(force) {
     const [sec = '', arg = ''] = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
     const s = sec && sec !== 'gallery' ? sections().find(x => x.slug === sec) : null;
+    nowSection = s;
     const view = !sec ? 'home' : sec === 'gallery' ? 'gallery' : sec + '/' + arg;
     if (force || view !== currentView) {
       const main = $('#main');
@@ -123,21 +154,27 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
 
     const site = DATA.site, here = sec || 'home';
     const tab = (key, href, label) => `<a href="${href}"${key === here ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
-    $('#tabs').innerHTML = tab('home', '#/', '首頁') + tab('gallery', '#/gallery', '畫廊') + sections().map(x => tab(x.slug, '#/' + esc(x.slug), x.name)).join('');
+    const menu = sections().map(x => tab(x.slug, '#/' + esc(x.slug), x.name));
+    // 畫廊可以排在文章分頁之間：galleryInfo.at 是畫廊前面有幾個文章分頁，這裡只算看得到的
+    menu.splice(DATA.sections.slice(0, DATA.galleryInfo?.at || 0).filter(x => preview || !x.hidden).length, 0, tab('gallery', '#/gallery', galleryName()));
+    $('#tabs').innerHTML = tab('home', '#/', '首頁') + menu.join('');
     $('#tabs [aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     $('#brandTitle').textContent = site.title;
     $('#brandLatin').textContent = site.latin;
     $('#footText').textContent = site.footer || `© ${new Date().getFullYear()} ${site.title}`;
     $('#footLatin').textContent = site.latin;
-    const page = view === 'home' ? '' : view === 'gallery' ? '畫廊' : s ? s.name : '';
+    const page = view === 'home' ? '' : view === 'gallery' ? galleryName() : s ? s.name : '';
     document.title = page ? `${page} · ${site.title}` : site.title;
   }
 
-  addEventListener('hashchange', () => render());
+  addEventListener('hashchange', () => { $('#cast').close(); render(); });
   addEventListener('click', e => {
     const b = e.target.closest('[data-cat]');
     if (b) { category = b.dataset.cat; render(true); }
     if (e.target.classList.contains('lb-img')) location.hash = '#/gallery';
+    const c = e.target.closest('[data-cast]');
+    if (c) openCast(+c.dataset.cast);
+    if (e.target.id === 'cast' || e.target.closest('#cast .close')) $('#cast').close();   // 點視窗外面或右上角的叉叉都會關閉
   });
   addEventListener('keydown', e => {
     if ($('#lightbox').hidden) return;
