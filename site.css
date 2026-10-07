@@ -52,18 +52,32 @@ img { max-width: 100%; }
 .nav a { text-decoration: none; }
 .brand { flex: none; display: flex; align-items: baseline; gap: 12px; font: 500 17px/1 var(--display); letter-spacing: .12em; }
 .brand small { font: 300 10px/1 var(--latin); letter-spacing: .32em; text-transform: uppercase; color: var(--mist); }
-#tabs {
-  margin-left: auto; min-width: 0; display: flex; gap: clamp(18px, 2.6vw, 32px);
-  overflow-x: auto; scrollbar-width: none; white-space: nowrap; align-self: stretch;
-}
-#tabs::-webkit-scrollbar { display: none; }
-#tabs a {
-  display: flex; align-items: center; font-size: 14px; letter-spacing: .1em; color: var(--mist);
+#tabs { margin-left: auto; min-width: 0; display: flex; gap: clamp(18px, 2.6vw, 32px); white-space: nowrap; align-self: stretch; }
+#tabs > a, .menu > button {
+  flex: none; display: flex; align-items: center; font-size: 14px; letter-spacing: .1em; color: var(--mist);
   box-shadow: inset 0 -1px 0 transparent; transition: color .15s, box-shadow .15s;
 }
-#tabs a:hover { color: var(--ink); }
-#tabs a[aria-current] { color: var(--ink); box-shadow: inset 0 -1px 0 var(--accent); }
-#tabs a:focus-visible { outline-offset: -3px; }
+#tabs > a:hover, .menu > button:hover, .menu.open > button { color: var(--ink); }
+#tabs > a[aria-current], .menu > button.has-current { color: var(--ink); box-shadow: inset 0 -1px 0 var(--accent); }
+#tabs > a:focus-visible, .menu > button:focus-visible { outline-offset: -3px; }
+/* 下拉選單：自訂的選單群組，以及放不下時自動出現的「更多」 */
+.menu { position: relative; flex: none; display: flex; }
+.menu > button { font-family: inherit; background: none; border: 0; padding: 0; cursor: pointer; gap: 6px; }
+.menu > button::after { content: ""; width: 6px; height: 6px; margin-top: -3px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--ease); }
+.menu.open > button::after { transform: translateY(3px) rotate(225deg); }
+.menu-list {
+  display: none; position: absolute; left: -14px; top: calc(100% + 6px); z-index: 6;
+  min-width: 190px; max-width: min(320px, calc(100vw - 32px)); max-height: min(70vh, 480px); overflow-y: auto;
+  padding: 6px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 18px 40px -22px rgba(11, 31, 71, .5); white-space: normal;
+}
+.menu:last-child .menu-list, .menu.more .menu-list { left: auto; right: -8px; }
+.menu.open .menu-list { display: block; animation: fade .15s ease-out; }
+.menu-list a { display: block; padding: 9px 14px; border-radius: 8px; font-size: 14px; letter-spacing: .06em; color: var(--mist); overflow-wrap: anywhere; }
+.menu-list a.sub { padding-left: 26px; }
+.menu-list a:hover { background: var(--surface); color: var(--ink); }
+.menu-list a[aria-current] { color: var(--ink); font-weight: 500; }
+.menu-label { padding: 10px 14px 4px; font-size: 12px; letter-spacing: .1em; color: var(--mist); }
 
 /* 首頁 */
 .hero {
@@ -106,6 +120,11 @@ img { max-width: 100%; }
 .page-head { padding-top: clamp(48px, 7vw, 96px); padding-bottom: clamp(28px, 4vw, 48px); }
 .page-head h1 { margin: 0; font: 300 clamp(36px, 5.6vw, 60px)/1.3 var(--display); letter-spacing: .08em; }
 .page-head p { margin: .8em 0 0; max-width: 40em; color: var(--mist); }
+.page-head h1 .tag {
+  display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 12px; border-radius: 99px;
+  font: 400 12px/1.6 var(--sans); letter-spacing: .06em; color: var(--mist); background: var(--surface);
+}
+.page-head h1 .tag:first-of-type { margin-left: 16px; }
 .page-head .desc { margin-top: 1.2em; }
 .page-head .desc p { margin: 0 0 .9em; font-size: 14.5px; line-height: 1.9; }
 .empty { margin: 0; padding: 32px 0 96px; color: var(--mist); }

@@ -82,7 +82,7 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
   function section(s) {
     const list = postsOf(s), cast = s.cast || [];
     return `
-<div class="wrap page-head"><h1>${esc(s.name)}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}</div>
+<div class="wrap page-head"><h1>${esc(s.name)}${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}</div>
 ${cast.length ? `<div class="wrap"><div class="cast">${cast.map((c, i) => `<button type="button" data-cast="${i}" aria-label="看${esc(c.name) || '這個角色'}的設定"><span class="tile"><img src="${esc(img(c.thumb || c.src))}" alt="" loading="lazy" style="${tileStyle(c)}"></span>${c.name ? `<span class="cname">${esc(c.name)}</span>` : ''}</button>`).join('')}</div></div>` : ''}
 <div class="wrap">${list.length ? `<ul class="posts">${list.map(p => postRow(p, s)).join('')}</ul>` : '<p class="empty">這個分頁還沒有文章。</p>'}</div>`;
   }
@@ -153,12 +153,20 @@ ${text ? `<div class="cast-text">${c.name ? `<h2>${esc(c.name)}</h2>` : ''}${par
     lightbox(sec === 'gallery' ? arg : '');
 
     const site = DATA.site, here = sec || 'home';
-    const tab = (key, href, label) => `<a href="${href}"${key === here ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
-    const menu = sections().map(x => tab(x.slug, '#/' + esc(x.slug), x.name));
+    // 選單項目：首頁、畫廊、文章分頁。設了「選單群組」的分頁會收成一個下拉選單，放在群組裡第一個分頁的位置
+    const items = [], groups = {};
+    for (const x of sections()) {
+      const link = { key: x.slug, href: '#/' + x.slug, label: x.name, on: x.slug === here }, g = (x.group || '').trim();
+      if (!g) items.push(link);
+      else if (groups[g]) groups[g].links.push(link);
+      else items.push(groups[g] = { label: g, links: [link] });
+    }
     // 畫廊可以排在文章分頁之間：galleryInfo.at 是畫廊前面有幾個文章分頁，這裡只算看得到的
-    menu.splice(DATA.sections.slice(0, DATA.galleryInfo?.at || 0).filter(x => preview || !x.hidden).length, 0, tab('gallery', '#/gallery', galleryName()));
-    $('#tabs').innerHTML = tab('home', '#/', '首頁') + menu.join('');
-    $('#tabs [aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const before = new Set(DATA.sections.slice(0, DATA.galleryInfo?.at || 0).filter(x => preview || !x.hidden).map(x => x.slug));
+    const at = items.findIndex(m => !(m.links ? m.links.some(l => before.has(l.key)) : before.has(m.key)));
+    items.splice(at < 0 ? items.length : at, 0, { key: 'gallery', href: '#/gallery', label: galleryName(), on: here === 'gallery' });
+    navItems = [{ key: 'home', href: '#/', label: '首頁', on: here === 'home' }, ...items];
+    fitTabs();
     $('#brandTitle').textContent = site.title;
     $('#brandLatin').textContent = site.latin;
     $('#footText').textContent = site.footer || `© ${new Date().getFullYear()} ${site.title}`;
@@ -167,16 +175,50 @@ ${text ? `<div class="cast-text">${c.name ? `<h2>${esc(c.name)}</h2>` : ''}${par
     document.title = page ? `${page} · ${site.title}` : site.title;
   }
 
+  // 選單的三種畫法：直接顯示的連結、下拉選單（群組或「更多」）、下拉選單裡的內容
+  let navItems = [];
+  const navLink = (m, cls = '') => `<a href="${esc(m.href)}"${cls ? ` class="${cls}"` : ''}${m.on ? ' aria-current="page"' : ''}>${esc(m.label)}</a>`;
+  const navMenu = (label, inner, on, cls = '') => `<div class="menu ${cls}"><button type="button" aria-haspopup="true" aria-expanded="false"${on ? ' class="has-current"' : ''}>${esc(label)}</button><div class="menu-list">${inner}</div></div>`;
+  const navTop = m => m.links ? navMenu(m.label, m.links.map(l => navLink(l)).join(''), m.links.some(l => l.on)) : navLink(m);
+  const navInMore = m => m.links ? `<div class="menu-label">${esc(m.label)}</div>${m.links.map(l => navLink(l, 'sub')).join('')}` : navLink(m);
+
+  // 選單放不下時，把排在後面的項目收進「更多」；視窗變寬就再放回來
+  function fitTabs() {
+    const tabs = $('#tabs'), bar = $('.nav-in'), cs = getComputedStyle(bar);
+    tabs.innerHTML = navItems.map(navTop).join('') + navMenu('更多', '', false, 'more');
+    const widths = [...tabs.children].map(el => el.getBoundingClientRect().width), moreW = widths.pop();
+    const gap = parseFloat(getComputedStyle(tabs).columnGap) || 0;
+    const room = bar.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - $('.brand').offsetWidth - (parseFloat(cs.columnGap) || 0);
+    if (widths.reduce((sum, w) => sum + w + gap, -gap) <= room) return tabs.lastElementChild.remove();
+    let used = moreW, keep = 0;
+    while (keep < widths.length && used + gap + widths[keep] <= room) used += gap + widths[keep++];
+    const rest = navItems.slice(keep);
+    tabs.innerHTML = navItems.slice(0, keep).map(navTop).join('') + navMenu('更多', rest.map(navInMore).join(''), rest.some(m => m.on || m.links?.some(l => l.on)), 'more');
+  }
+  // 打開指定的下拉選單，其他的都收起來；不指定就是全部收起來
+  function openMenu(menu) {
+    document.querySelectorAll('#tabs .menu').forEach(m => {
+      const on = m === menu;
+      m.classList.toggle('open', on);
+      $('button', m).setAttribute('aria-expanded', on);
+    });
+  }
+  new ResizeObserver(fitTabs).observe($('.nav-in'));
+  document.fonts?.ready.then(fitTabs);
+
   addEventListener('hashchange', () => { $('#cast').close(); render(); });
   addEventListener('click', e => {
     const b = e.target.closest('[data-cat]');
     if (b) { category = b.dataset.cat; render(true); }
+    const mb = e.target.closest('#tabs .menu > button');
+    openMenu(mb && !mb.parentNode.classList.contains('open') ? mb.parentNode : null);   // 點選單名稱開關下拉選單，點其他地方就收起來
     if (e.target.classList.contains('lb-img')) location.hash = '#/gallery';
     const c = e.target.closest('[data-cast]');
     if (c) openCast(+c.dataset.cast);
     if (e.target.id === 'cast' || e.target.closest('#cast .close')) $('#cast').close();   // 點視窗外面或右上角的叉叉都會關閉
   });
   addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('#tabs .menu.open')) { const b = $('#tabs .menu.open > button'); openMenu(null); b.focus(); }
     if ($('#lightbox').hidden) return;
     const a = $(`#lightbox [data-k="${e.key}"]`);
     if (a) location.hash = a.getAttribute('href');
