@@ -129,6 +129,7 @@ img { max-width: 100%; }
 }
 .page-head h1 .tag:first-of-type { margin-left: 16px; }
 .page-head .desc { margin-top: 1.2em; }
+.page-head .links { margin-top: 16px; }
 .page-head .desc p { margin: 0 0 .9em; font-size: 14.5px; line-height: 1.9; }
 .empty { margin: 0; padding: 32px 0 96px; color: var(--mist); }
 .draft {

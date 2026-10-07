@@ -81,8 +81,9 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
 
   function section(s) {
     const list = postsOf(s), cast = s.cast || [];
+    const secLinks = (s.links || []).filter(l => l.url);
     return `
-<div class="wrap page-head"><h1>${esc(s.name)}${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}</div>
+<div class="wrap page-head"><h1>${esc(s.name)}${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}${secLinks.length ? `<div class="links">${secLinks.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label) || esc(l.url)}</a>`).join('')}</div>` : ''}</div>
 ${cast.length ? `<div class="wrap"><div class="cast">${cast.map((c, i) => `<button type="button" data-cast="${i}" aria-label="看${esc(c.name) || '這個角色'}的設定"><span class="tile"><img src="${esc(img(c.thumb || c.src))}" alt="" loading="lazy" style="${tileStyle(c)}"></span>${c.name ? `<span class="cname">${esc(c.name)}</span>` : ''}</button>`).join('')}</div></div>` : ''}
 <div class="wrap">${list.length ? `<ul class="posts">${list.map(p => postRow(p, s)).join('')}</ul>` : '<p class="empty">這個分頁還沒有文章。</p>'}</div>`;
   }
