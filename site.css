@@ -7,9 +7,9 @@
   --mist: #5A6A88;
   --accent: #1F4FB5;
   --line: rgba(11, 31, 71, .14);
-  --title: "IBM Plex Sans", "IBM Plex Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --display: "IBM Plex Sans", "IBM Plex Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --sans: "IBM Plex Sans", "IBM Plex Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --title: "IBM Plex Sans", "IBM Plex Sans TC", "IBM Plex Sans JP", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --display: "IBM Plex Sans", "IBM Plex Sans TC", "IBM Plex Sans JP", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --sans: "IBM Plex Sans", "IBM Plex Sans TC", "IBM Plex Sans JP", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --latin: "Inter", "Avenir Next", "Helvetica Neue", sans-serif;
   --gutter: clamp(20px, 5vw, 64px);
   --max: 1120px;
