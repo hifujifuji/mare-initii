@@ -30,6 +30,13 @@
     return `width:${W.toFixed(2)}%;height:${H.toFixed(2)}%;left:${L.toFixed(2)}%;top:${T.toFixed(2)}%`;
   }
 
+  // 角色縮圖要用哪張圖：縮圖放大後如果比螢幕需要的解析度低（例如從全身圖放大到只剩臉），就改用原圖，才不會糊
+  function castSrc(c) {
+    const a = (c.w / c.h) || 1, need = 112 * (window.devicePixelRatio || 1) * (a >= 1 ? a : 1) * Math.max(1, +c.zoom || 1);
+    const thumbW = c.w * Math.min(1, 1000 / Math.max(c.w, c.h));
+    return c.thumb && thumbW >= need * .9 ? c.thumb : c.src;
+  }
+
   const cell = g => `<a class="cell" href="#/gallery/${esc(g.id)}" style="--r:${(g.w / g.h || 1).toFixed(4)}"><img src="${esc(img(g.thumb || g.src))}" alt="${esc(g.title)}" loading="lazy">${g.title ? `<span>${esc(g.title)}</span>` : ''}</a>`;
 
   const dated = p => p.showDate !== false;   // 每篇文章可以選擇要不要顯示日期
@@ -84,7 +91,7 @@ ${!works.length && !latest.length ? '<div class="wrap"><p class="empty">作品�
     const secLinks = (s.links || []).filter(l => l.url);
     return `
 <div class="wrap page-head"><h1>${esc(s.name)}${(s.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}${s.hidden ? '<span class="draft">未公開</span>' : ''}</h1>${s.desc ? `<div class="desc">${paras(s.desc)}</div>` : ''}${secLinks.length ? `<div class="links">${secLinks.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label) || esc(l.url)}</a>`).join('')}</div>` : ''}</div>
-${cast.length ? `<div class="wrap"><div class="cast">${cast.map((c, i) => `<button type="button" data-cast="${i}" aria-label="看${esc(c.name) || '這個角色'}的設定"><span class="tile"><img src="${esc(img(c.thumb || c.src))}" alt="" loading="lazy" style="${tileStyle(c)}"></span>${c.name ? `<span class="cname">${esc(c.name)}</span>` : ''}</button>`).join('')}</div></div>` : ''}
+${cast.length ? `<div class="wrap"><div class="cast">${cast.map((c, i) => `<button type="button" data-cast="${i}" aria-label="看${esc(c.name) || '這個角色'}的設定"><span class="tile"><img src="${esc(img(castSrc(c)))}" alt="" loading="lazy" style="${tileStyle(c)}"></span>${c.name ? `<span class="cname">${esc(c.name)}</span>` : ''}</button>`).join('')}</div></div>` : ''}
 <div class="wrap">${list.length ? `<ul class="posts">${list.map(p => postRow(p, s)).join('')}</ul>` : '<p class="empty">這個分頁還沒有文章。</p>'}</div>`;
   }
 
